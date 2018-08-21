@@ -13,7 +13,7 @@ import time
 import gc
 import os
 
-from inputHandler import create_train_dev_set
+from input_handler import create_train_dev_set
 
 
 

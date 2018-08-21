@@ -1,8 +1,7 @@
 from model import SiameseBiLSTM
-from inputHandler import word_embed_meta_data, create_test_data
+from input_handler import *
 from config import siamese_config
 import matplotlib.pyplot as plt
-from load_sick import *
 from operator import itemgetter
 from keras.models import load_model
 import pandas as pd
@@ -20,12 +19,12 @@ filters = '!".#$%&()*+,/:;<=>?@[\\]^_`{|}~\t\n'  # Allow '-' for hypenated words
 ###### LSTM Siamese Text Similarity #####
 #########################################
 def get_session(gpu_fraction=0.333):
-	''' Prevents memory errors with TensorFlow
-	'''
-	gpu_options = \
-		tf.GPUOptions(per_process_gpu_memory_fraction=gpu_fraction,
-					  allow_growth=True)
-	return tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
+    ''' Prevents memory errors with TensorFlow
+    '''
+    gpu_options = \
+        tf.GPUOptions(per_process_gpu_memory_fraction=gpu_fraction,
+                      allow_growth=True)
+    return tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
 
 ktf.set_session(get_session())
 
@@ -41,13 +40,13 @@ def remove_punct(sentences):
     Returns:
         sentences (list): list of senteces without punctuation
     """
-	for sentence in sentences:
-		sentence = sentence.translate(None, filters)
-	return sentences
+    for sentence in sentences:
+        sentence = sentence.translate(None, filters)
+    return sentences
 
 
 def train_entailment(extend_training=False):
-	"""
+    """
     train a siamese neural network on the SICK dataset using entailment
 
 
@@ -55,86 +54,86 @@ def train_entailment(extend_training=False):
         documents (bool): True to split the training data 75:25. False to split 50:50 
     """
 
-	sentences1, sentences2, is_similar = load_sick_entailment(mode=TRAIN)
-	test_sentences1, test_sentences2, test_labels = load_sick_entailment(mode=TEST)
+    sentences1, sentences2, is_similar = load_sick_entailment(mode=TRAIN)
+    test_sentences1, test_sentences2, test_labels = load_sick_entailment(mode=TEST)
 
-	if extend_training == True:
-		sentences1, sentences2, is_similar, test_sentences1, test_sentences2, test_labels = extend_train_set(sentences1, sentences2, is_similar, test_sentences1, test_sentences2, test_labels)
-
-
+    if extend_training == True:
+        sentences1, sentences2, is_similar, test_sentences1, test_sentences2, test_labels = extend_train_set(sentences1, sentences2, is_similar, test_sentences1, test_sentences2, test_labels)
 
 
-	sentences1 = remove_punct(sentences1)
-	sentences2 = remove_punct(sentences2)
-	test_sentences1 = remove_punct(test_sentences1)
-	test_sentences2 = remove_punct(test_sentences2)
-
-	# One hot encoding
-	is_similar = to_categorical(is_similar, num_classes=3)
-	test_labels = to_categorical(test_labels, num_classes=3)
-
-	print(np.array(is_similar))
-
-	####################################
-	######## Word Embedding ############
-	####################################
 
 
-	# creating word embedding meta data for word embedding 
-	tokenizer, embedding_matrix = word_embed_meta_data(sentences1 + sentences2 + test_sentences1 + test_sentences2,  siamese_config['EMBEDDING_DIM'])
+    sentences1 = remove_punct(sentences1)
+    sentences2 = remove_punct(sentences2)
+    test_sentences1 = remove_punct(test_sentences1)
+    test_sentences2 = remove_punct(test_sentences2)
 
-	embedding_meta_data = {
-		'tokenizer': tokenizer,
-		'embedding_matrix': embedding_matrix
-	}
+    # One hot encoding
+    is_similar = to_categorical(is_similar, num_classes=3)
+    test_labels = to_categorical(test_labels, num_classes=3)
 
-	## creating sentence pairs
-	sentences_pair = [(x1, x2) for x1, x2 in zip(sentences1, sentences2)]
-	del sentences1
-	del sentences2
+    print(np.array(is_similar))
 
-	test_sentence_pairs = [(x1, x2) for x1, x2 in zip(test_sentences1, test_sentences2)]
+    ####################################
+    ######## Word Embedding ############
+    ####################################
 
-	##########################
-	######## Training ########
-	##########################
 
-	class Configuration(object):
-		"""Dump stuff here"""
+    # creating word embedding meta data for word embedding 
+    tokenizer, embedding_matrix = word_embed_meta_data(sentences1 + sentences2 + test_sentences1 + test_sentences2,  siamese_config['EMBEDDING_DIM'])
 
-	CONFIG = Configuration()
-	CONFIG.embedding_dim = siamese_config['EMBEDDING_DIM']
-	CONFIG.max_sequence_length = siamese_config['MAX_SEQUENCE_LENGTH']
-	CONFIG.number_lstm_units = siamese_config['NUMBER_LSTM']
-	CONFIG.rate_drop_lstm = siamese_config['RATE_DROP_LSTM']
-	CONFIG.number_dense_units = siamese_config['NUMBER_DENSE_UNITS']
-	CONFIG.activation_function = siamese_config['ACTIVATION_FUNCTION']
-	CONFIG.rate_drop_dense = siamese_config['RATE_DROP_DENSE']
-	CONFIG.validation_split_ratio = siamese_config['VALIDATION_SPLIT']
+    embedding_meta_data = {
+        'tokenizer': tokenizer,
+        'embedding_matrix': embedding_matrix
+    }
 
-	siamese = SiameseBiLSTM(CONFIG.embedding_dim , CONFIG.max_sequence_length, CONFIG.number_lstm_units , CONFIG.number_dense_units, 
-							CONFIG.rate_drop_lstm, CONFIG.rate_drop_dense, CONFIG.activation_function, CONFIG.validation_split_ratio)
+    ## creating sentence pairs
+    sentences_pair = [(x1, x2) for x1, x2 in zip(sentences1, sentences2)]
+    del sentences1
+    del sentences2
 
-	
+    test_sentence_pairs = [(x1, x2) for x1, x2 in zip(test_sentences1, test_sentences2)]
 
-	best_model_path, history = siamese.train_entailment(sentences_pair, is_similar, embedding_meta_data, model_save_directory='./')
+    ##########################
+    ######## Training ########
+    ##########################
 
-	########################
-	###### Testing #########
-	########################
+    class Configuration(object):
+        """Dump stuff here"""
 
-	model = load_model(best_model_path)
+    CONFIG = Configuration()
+    CONFIG.embedding_dim = siamese_config['EMBEDDING_DIM']
+    CONFIG.max_sequence_length = siamese_config['MAX_SEQUENCE_LENGTH']
+    CONFIG.number_lstm_units = siamese_config['NUMBER_LSTM']
+    CONFIG.rate_drop_lstm = siamese_config['RATE_DROP_LSTM']
+    CONFIG.number_dense_units = siamese_config['NUMBER_DENSE_UNITS']
+    CONFIG.activation_function = siamese_config['ACTIVATION_FUNCTION']
+    CONFIG.rate_drop_dense = siamese_config['RATE_DROP_DENSE']
+    CONFIG.validation_split_ratio = siamese_config['VALIDATION_SPLIT']
 
-	print(best_model_path)
-	test_data_x1, test_data_x2, leaks_test = create_test_data(tokenizer, test_sentence_pairs,  siamese_config['MAX_SEQUENCE_LENGTH'])
-	
+    siamese = SiameseBiLSTM(CONFIG.embedding_dim , CONFIG.max_sequence_length, CONFIG.number_lstm_units , CONFIG.number_dense_units, 
+                            CONFIG.rate_drop_lstm, CONFIG.rate_drop_dense, CONFIG.activation_function, CONFIG.validation_split_ratio)
 
-	for x in range(0, len(test_data_x2)):
-		test_1 = test_data_x1[x].reshape(1,20)
-		test_2 = test_data_x2[x].reshape(1,20)
-		test_l = leaks_test[x].reshape(1,3)
+    
 
-	plot_model_d(history,)
+    best_model_path, history = siamese.train_entailment(sentences_pair, is_similar, embedding_meta_data, model_save_directory='./')
+
+    ########################
+    ###### Testing #########
+    ########################
+
+    model = load_model(best_model_path)
+
+    print(best_model_path)
+    test_data_x1, test_data_x2, leaks_test = create_test_data(tokenizer, test_sentence_pairs,  siamese_config['MAX_SEQUENCE_LENGTH'])
+    
+
+    for x in range(0, len(test_data_x2)):
+        test_1 = test_data_x1[x].reshape(1,20)
+        test_2 = test_data_x2[x].reshape(1,20)
+        test_l = leaks_test[x].reshape(1,3)
+
+    plot_model_d(history,)
 
 
 
@@ -142,98 +141,98 @@ def train_entailment(extend_training=False):
 
 
 def train(mode='relatedness'):
-	"""
-	NOT YET IMPLEMENTED
+    """
+    NOT YET IMPLEMENTED
 
-	"""
-	########################################
-	############ Data Preperation ##########
-	########################################
-	sentences1, sentences2, is_similar = load_sick_entailment(mode=TRAIN)
-	test_sentences1, test_sentences2, test_labels = load_sick_entailment(mode=TEST)
+    """
+    ########################################
+    ############ Data Preperation ##########
+    ########################################
+    sentences1, sentences2, is_similar = load_sick_entailment(mode=TRAIN)
+    test_sentences1, test_sentences2, test_labels = load_sick_entailment(mode=TEST)
 
-	sentences1 = remove_punct(sentences1)
-	sentences2 = remove_punct(sentences2)
-	test_sentences1 = remove_punct(test_sentences1)
-	test_sentences2 = remove_punct(test_sentences2)
+    sentences1 = remove_punct(sentences1)
+    sentences2 = remove_punct(sentences2)
+    test_sentences1 = remove_punct(test_sentences1)
+    test_sentences2 = remove_punct(test_sentences2)
 
-	labels_rate = []
-	is_similar_rate = []
+    labels_rate = []
+    is_similar_rate = []
 
-	for x in range(0, len(is_similar)):
-		is_similar_rate.append((float(is_similar[x]) - MIN) / (MAX - MIN))
-	for y in range(0, len(test_labels)):
-		labels_rate.append((float(test_labels[y]) - MIN) / (MAX - MIN))
-
-
-	is_similar = is_similar_rate
-	test_labels = labels_rate
-
-	####Test Data ####
-	test_sentence_pairs = []
-
-	####################################
-	######## Word Embedding ############
-	####################################
-	# creating word embedding meta data for word embedding 
-	tokenizer, embedding_matrix = word_embed_meta_data(sentences1 + sentences2,  siamese_config['EMBEDDING_DIM'])
-
-	embedding_meta_data = {
-		'tokenizer': tokenizer,
-		'embedding_matrix': embedding_matrix
-	}
-
-	## creating sentence pairs
-	sentences_pair = [(x1, x2) for x1, x2 in zip(sentences1, sentences2)]
-	del sentences1
-	del sentences2
-	test_sentence_pairs = [(x1, x2) for x1, x2 in zip(test_sentences1, test_sentences2)]
-
-	##########################
-	######## Training ########
-	##########################
+    for x in range(0, len(is_similar)):
+        is_similar_rate.append((float(is_similar[x]) - MIN) / (MAX - MIN))
+    for y in range(0, len(test_labels)):
+        labels_rate.append((float(test_labels[y]) - MIN) / (MAX - MIN))
 
 
+    is_similar = is_similar_rate
+    test_labels = labels_rate
 
-	class Configuration(object):
-		"""Dump stuff here"""
+    ####Test Data ####
+    test_sentence_pairs = []
 
-	CONFIG = Configuration()
-	CONFIG.embedding_dim = siamese_config['EMBEDDING_DIM']
-	CONFIG.max_sequence_length = siamese_config['MAX_SEQUENCE_LENGTH']
-	CONFIG.number_lstm_units = siamese_config['NUMBER_LSTM']
-	CONFIG.rate_drop_lstm = siamese_config['RATE_DROP_LSTM']
-	CONFIG.number_dense_units = siamese_config['NUMBER_DENSE_UNITS']
-	CONFIG.activation_function = siamese_config['ACTIVATION_FUNCTION']
-	CONFIG.rate_drop_dense = siamese_config['RATE_DROP_DENSE']
-	CONFIG.validation_split_ratio = siamese_config['VALIDATION_SPLIT']
+    ####################################
+    ######## Word Embedding ############
+    ####################################
+    # creating word embedding meta data for word embedding 
+    tokenizer, embedding_matrix = word_embed_meta_data(sentences1 + sentences2,  siamese_config['EMBEDDING_DIM'])
 
-	siamese = SiameseBiLSTM(CONFIG.embedding_dim , CONFIG.max_sequence_length, CONFIG.number_lstm_units , CONFIG.number_dense_units, 
-							CONFIG.rate_drop_lstm, CONFIG.rate_drop_dense, CONFIG.activation_function, CONFIG.validation_split_ratio)
-	
-	best_model_path = siamese.train_model(sentences_pair, is_similar, embedding_meta_data, model_save_directory='./')
+    embedding_meta_data = {
+        'tokenizer': tokenizer,
+        'embedding_matrix': embedding_matrix
+    }
 
+    ## creating sentence pairs
+    sentences_pair = [(x1, x2) for x1, x2 in zip(sentences1, sentences2)]
+    del sentences1
+    del sentences2
+    test_sentence_pairs = [(x1, x2) for x1, x2 in zip(test_sentences1, test_sentences2)]
 
-	########################
-	###### Testing #########
-	########################
-
-	model = load_model(best_model_path)
-
-	print(best_model_path)
-
-	test_data_x1, test_data_x2, leaks_test = create_test_data(tokenizer, test_sentence_pairs, siamese_config['MAX_SEQUENCE_LENGTH'])
-	print(model.evaluate([test_data_x1, test_data_x2, leaks_test], test_labels))
+    ##########################
+    ######## Training ########
+    ##########################
 
 
-	#test_sentence_pairs = [(test_sentences1[0],test_sentences2[0]),
-	#				   (test_sentences1[1],test_sentences2[1])]
 
-	#preds = list(model.predict([test_data_x1, test_data_x2, leaks_test], verbose=1).ravel())
-	#results = [(x, y, z) for (x, y), z in zip(test_sentence_pairs, preds)]
-	#results.sort(key=itemgetter(2), reverse=True)
-	#print results
+    class Configuration(object):
+        """Dump stuff here"""
+
+    CONFIG = Configuration()
+    CONFIG.embedding_dim = siamese_config['EMBEDDING_DIM']
+    CONFIG.max_sequence_length = siamese_config['MAX_SEQUENCE_LENGTH']
+    CONFIG.number_lstm_units = siamese_config['NUMBER_LSTM']
+    CONFIG.rate_drop_lstm = siamese_config['RATE_DROP_LSTM']
+    CONFIG.number_dense_units = siamese_config['NUMBER_DENSE_UNITS']
+    CONFIG.activation_function = siamese_config['ACTIVATION_FUNCTION']
+    CONFIG.rate_drop_dense = siamese_config['RATE_DROP_DENSE']
+    CONFIG.validation_split_ratio = siamese_config['VALIDATION_SPLIT']
+
+    siamese = SiameseBiLSTM(CONFIG.embedding_dim , CONFIG.max_sequence_length, CONFIG.number_lstm_units , CONFIG.number_dense_units, 
+                            CONFIG.rate_drop_lstm, CONFIG.rate_drop_dense, CONFIG.activation_function, CONFIG.validation_split_ratio)
+    
+    best_model_path = siamese.train_model(sentences_pair, is_similar, embedding_meta_data, model_save_directory='./')
+
+
+    ########################
+    ###### Testing #########
+    ########################
+
+    model = load_model(best_model_path)
+
+    print(best_model_path)
+
+    test_data_x1, test_data_x2, leaks_test = create_test_data(tokenizer, test_sentence_pairs, siamese_config['MAX_SEQUENCE_LENGTH'])
+    print(model.evaluate([test_data_x1, test_data_x2, leaks_test], test_labels))
+
+
+    #test_sentence_pairs = [(test_sentences1[0],test_sentences2[0]),
+    #                   (test_sentences1[1],test_sentences2[1])]
+
+    #preds = list(model.predict([test_data_x1, test_data_x2, leaks_test], verbose=1).ravel())
+    #results = [(x, y, z) for (x, y), z in zip(test_sentence_pairs, preds)]
+    #results.sort(key=itemgetter(2), reverse=True)
+    #print results
 
 
 if __name__ == '__main__':
-	train_entailment(extend_training = True)
+    train_entailment(extend_training = True)

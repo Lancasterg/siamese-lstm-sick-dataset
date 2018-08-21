@@ -4,8 +4,7 @@ from gensim.models import Word2Vec
 import numpy as np
 import pickle
 import gc
-from load_sick import *
-from inputHandler import *
+from input_handler import *
 from model import SiameseBiLSTM
 from config import *
 import string

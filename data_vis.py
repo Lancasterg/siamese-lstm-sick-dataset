@@ -1,20 +1,15 @@
-from load_sick import *
-from inputHandler import *
+from input_handler import *
 from model import SiameseBiLSTM
-from inputHandler import word_embed_meta_data, create_test_data
 from config import siamese_config
-from load_sick import *
-from operator import itemgetter
 from keras.models import load_model
-import pandas as pd
 import tensorflow as tf
 import keras.backend.tensorflow_backend as ktf
 from keras.utils.np_utils import to_categorical
-import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 from sklearn.metrics import confusion_matrix
 import matplotlib.pyplot as plt
 import itertools
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 
 def one_hot(a):
