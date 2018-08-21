@@ -1,0 +1,15 @@
+\begin{thebibliography}{1}
+
+\bibitem{mikolov2013distributed}
+Tomas Mikolov, Ilya Sutskever, Kai Chen, Greg~S Corrado, and Jeff Dean.
+\newblock Distributed representations of words and phrases and their
+  compositionality.
+\newblock In {\em Advances in neural information processing systems}, pages
+  3111--3119, 2013.
+
+\bibitem{mueller2016siamese}
+Jonas Mueller and Aditya Thyagarajan.
+\newblock Siamese recurrent architectures for learning sentence similarity.
+\newblock In {\em AAAI}, volume~16, pages 2786--2792, 2016.
+
+\end{thebibliography}
